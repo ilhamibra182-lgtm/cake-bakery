@@ -95,6 +95,41 @@
     table.xl td.act{padding:4px 6px;text-align:center}
     table.xl tfoot td{background:#faf6f4;font-weight:700;padding:8px}
     .panel.wide{width:min(1140px,100%)}
+    .stabs{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:14px 0 0;border-bottom:1px solid var(--line)}
+    .tabbtns{display:flex;gap:4px;flex-wrap:wrap}
+    .stab{position:relative;border:0;background:transparent;padding:11px 16px;font-size:13px;font-weight:650;color:var(--muted);border-radius:12px 12px 0 0;transition:.2s}
+    .stab:hover,.stab.active{color:var(--ink);background:#fff8fa}
+    .stab.active:after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:3px;border-radius:3px;background:var(--rose)}
+    #aPeriodWrap label{display:block;margin-bottom:2px}
+    #aPeriodWrap select{width:auto;min-width:170px;margin:0;padding:8px 10px;font-size:12px}
+    .tab-panel{margin-top:16px}
+    .pv-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:14px}
+    .pv-bar>div{min-width:170px}.pv-bar label{display:block;margin-bottom:2px}.pv-bar select{width:100%;margin:0;padding:9px 10px;font-size:12px}
+    .pv-wrap{overflow:auto;max-height:460px;border:1px solid #e6dad4;border-radius:14px;background:#fff}
+    table.pv{border-collapse:separate;border-spacing:0;width:100%;min-width:480px;font-size:12.5px}
+    table.pv th,table.pv td{padding:10px 14px;border-bottom:1px solid #f3ece8;border-right:1px solid #f6f0ed;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
+    table.pv thead th{position:sticky;top:0;z-index:2;background:#fbf7f5;color:var(--muted);font-weight:650}
+    table.pv th.corner{position:sticky;left:0;top:0;z-index:4;text-align:left;color:var(--ink);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+    table.pv th.rh{position:sticky;left:0;z-index:1;text-align:left;color:var(--ink);font-weight:650;background:#fff}
+    table.pv .tot{font-weight:700;background:#faf6f4}
+    table.pv tfoot th.rh,table.pv tfoot td{background:#302722;color:#fff;font-weight:700;border-bottom:0}
+    table.pv tfoot th.rh{position:sticky;left:0}
+    .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+    .kpi{position:relative;overflow:hidden;border-radius:16px;padding:18px 16px 14px;background:linear-gradient(160deg,#fff 0%,#fff3f6 100%);border:1px solid #f1e2e7}
+    .kpi:before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:linear-gradient(90deg,var(--rose),#e8b4a0)}
+    .kpi small{display:block;color:var(--muted);font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+    .kpi strong{display:block;font:26px/1.2 Georgia,serif;margin-top:8px;color:var(--ink)}
+    .kpi em{font-style:normal;font-size:11px;color:#617b58}
+    .pills{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
+    .pill{background:#f1f5ed;color:#4f6546;border-radius:999px;padding:7px 13px;font-size:12px}
+    .pill b{color:var(--ink)}
+    .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+    .cbox{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 16px 12px}
+    .cbox.wide{grid-column:1/-1}
+    .cbox h4{font:19px Georgia,serif;margin:0 0 10px}
+    .chart-box{position:relative;height:250px}
+    .empty{padding:34px;text-align:center;color:var(--muted);font-size:13px;border:1px dashed var(--line);border-radius:14px;margin-top:14px}
+    @media(max-width:900px){.chart-grid{grid-template-columns:1fr}.pv-bar>div{min-width:100%}}
     @media(max-width:900px){.catalog{grid-template-columns:repeat(2,1fr)}.product img{height:220px}}
     @media(max-width:650px){header{height:66px}.wrap{width:min(100% - 28px,1120px)}.navlinks{display:none}.hero{padding:14px 0 48px}.hero-video{border-radius:16px}.hero-video video{height:68vw;min-height:230px}.video-label{left:12px;bottom:12px;font-size:9px}.section{padding:58px 0}.catalog{gap:11px}.product img{height:145px}.product-body{padding:13px}.product h3{font-size:19px}.product p{font-size:11px}.bundles{grid-template-columns:1fr}.bundle{padding:21px}.custom-grid{grid-template-columns:1fr;gap:24px}.custom-photo{height:260px}.socials{grid-template-columns:1fr}.dashstats{grid-template-columns:repeat(2,1fr)}.dashgrid{grid-template-columns:1fr}.panel{padding:18px}}
   </style>
@@ -202,7 +237,15 @@
         <button class="btn btn-small" type="button" onclick="hideSheet()">← Kembali ke dashboard</button>
       </div>
       <p class="tiny">Semua transaksi dari browser ini. Klik sel untuk mengubah pesanan, nominal, atau status. Perubahan langsung tersimpan.</p>
-      <div class="sheet-bar">
+      <div class="stabs">
+        <div class="tabbtns">
+          <button class="stab active" id="tabBtnData" type="button" onclick="switchTab('data')">📋 Data</button>
+          <button class="stab" id="tabBtnPivot" type="button" onclick="switchTab('pivot')">🧮 Pivot</button>
+          <button class="stab" id="tabBtnChart" type="button" onclick="switchTab('chart')">📈 Grafik</button>
+        </div>
+        <div id="aPeriodWrap" style="display:none"><label class="tiny">Periode analisis</label><select id="aPeriod" onchange="renderAnalytics()"><option value="all">Semua waktu</option><option value="today">Hari ini</option><option value="7d">7 hari terakhir</option><option value="month">Bulan ini</option></select></div>
+      </div>
+      <div class="tab-panel" id="tabData"><div class="sheet-bar">
         <div><label class="tiny">Periode</label><select id="fPeriod" onchange="renderSheet()"><option value="all">Semua waktu</option><option value="today">Hari ini</option><option value="7d">7 hari terakhir</option><option value="month">Bulan ini</option></select></div>
         <div><label class="tiny">Status</label><select id="fStatus" onchange="renderSheet()"><option value="all">Semua status</option><option value="paid">Lunas</option><option value="pending">Menunggu</option></select></div>
         <button class="btn btn-small" type="button" onclick="addSheetRow()">+ Baris baru</button>
@@ -214,6 +257,27 @@
           <tbody id="sheetBody"></tbody>
           <tfoot id="sheetFoot"></tfoot>
         </table>
+      </div>
+      </div>
+      <div id="tabPivot" class="tab-panel" style="display:none">
+        <div class="pv-bar">
+          <div><label class="tiny">Baris</label><select id="pRow" onchange="renderPivot()"><option value="produk">Produk</option><option value="tanggal">Tanggal</option><option value="bulan">Bulan</option><option value="jam">Jam</option><option value="status">Status</option></select></div>
+          <div><label class="tiny">Kolom</label><select id="pCol" onchange="renderPivot()"><option value="">— tanpa kolom —</option><option value="status" selected>Status</option><option value="produk">Produk</option><option value="bulan">Bulan</option><option value="jam">Jam</option></select></div>
+          <div><label class="tiny">Nilai</label><select id="pVal" onchange="renderPivot()"><option value="total">Total nominal (Rp)</option><option value="omzet">Omzet lunas (Rp)</option><option value="count">Jumlah transaksi</option></select></div>
+        </div>
+        <div class="pv-wrap" id="pivotOut"></div>
+        <p class="tiny" style="margin-top:10px">Pivot mengikuti periode analisis di atas. Makin pekat warna sel, makin besar nilainya.</p>
+      </div>
+      <div id="tabChart" class="tab-panel" style="display:none">
+        <div class="kpis" id="kpis"></div>
+        <div class="pills" id="pills"></div>
+        <div class="chart-grid" id="chartGrid">
+          <div class="cbox wide"><h4>Tren omzet &amp; jumlah transaksi</h4><div class="chart-box"><canvas id="cTrend"></canvas></div></div>
+          <div class="cbox"><h4>Omzet per produk</h4><div class="chart-box"><canvas id="cProduk"></canvas></div></div>
+          <div class="cbox"><h4>Porsi omzet per produk</h4><div class="chart-box"><canvas id="cShare"></canvas></div></div>
+          <div class="cbox wide"><h4>Transaksi per jam (lunas vs menunggu)</h4><div class="chart-box"><canvas id="cJam"></canvas></div></div>
+        </div>
+        <div id="chartMsg"></div>
       </div>
       <datalist id="produkList"><option>Midi Mousse</option><option>Bento Cake</option><option>Midi Butterfly</option><option>Midi Custom</option><option>Paket Single Treats — 1 kue custom</option><option>Paket Double Happiness — 2 kue custom</option><option>Paket Triple Sweetness — 3 kue custom</option><option>Konsultasi desain custom</option></datalist>
     </div>
@@ -241,6 +305,7 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 <script>
   const WA_NUMBER = "6281331694738";
   const ADMIN_PASSWORD = "MINO0993";
@@ -294,7 +359,7 @@
   function showSheet(){
     document.getElementById("dashboard").style.display="none";
     document.getElementById("sheetView").style.display="block";
-    document.querySelector("#adminModal .panel").classList.add("wide");
+    document.querySelector("#adminModal .panel").classList.add("wide");switchTab(lastTab);
     renderSheet();
   }
   function hideSheet(){
@@ -364,6 +429,129 @@
     a.href=url;a.download=`rekap-penjualan-mino-cake-${isoDate(new Date())}.csv`;
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  let lastTab="data";
+  let charts={};
+  const PALETTE=["#d98fa4","#667c5d","#e8b4a0","#9e6576","#b9cfa9","#f2c6d3","#8b7c75","#c9a7b0"];
+  const PIVOT_FIELDS={
+    produk:{label:"Produk",key:x=>x.name||"(tanpa nama)"},
+    tanggal:{label:"Tanggal",key:x=>dayKey(x.date)},
+    bulan:{label:"Bulan",key:x=>monthKey(x.date)},
+    jam:{label:"Jam",key:x=>pad2(new Date(x.date).getHours())+":00"},
+    status:{label:"Status",key:x=>x.status==="paid"?"Lunas":"Menunggu"}
+  };
+  const MEASURES={
+    total:{money:true,fn:x=>Number(x.amount)||0},
+    omzet:{money:true,fn:x=>x.status==="paid"?(Number(x.amount)||0):0},
+    count:{money:false,fn:()=>1}
+  };
+  const pad2=n=>String(n).padStart(2,"0");
+  function dayKey(s){const d=new Date(s);return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`}
+  function monthKey(s){const d=new Date(s);return `${d.getFullYear()}-${pad2(d.getMonth()+1)}`}
+  function keyLabel(field,k){
+    if(field==="tanggal"){const [y,m,d]=k.split("-");return new Date(+y,+m-1,+d).toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"})}
+    if(field==="bulan"){const [y,m]=k.split("-");return new Date(+y,+m-1,1).toLocaleDateString("id-ID",{month:"short",year:"numeric"})}
+    return k;
+  }
+  function shortRp(v){return v>=1e6?(v/1e6).toLocaleString("id-ID",{maximumFractionDigits:1})+" jt":v>=1e3?Math.round(v/1e3)+" rb":String(v)}
+  function analyticsRows(){return getSales().filter(x=>periodOk(x.date,document.getElementById("aPeriod").value))}
+  function switchTab(t){
+    lastTab=t;
+    const panels={data:"tabData",pivot:"tabPivot",chart:"tabChart"};
+    Object.keys(panels).forEach(k=>{
+      document.getElementById(panels[k]).style.display=k===t?"block":"none";
+      document.getElementById("tabBtn"+k.charAt(0).toUpperCase()+k.slice(1)).classList.toggle("active",k===t);
+    });
+    document.getElementById("aPeriodWrap").style.display=t==="data"?"none":"block";
+    if(t==="data")renderSheet();else renderAnalytics();
+  }
+  function renderAnalytics(){
+    if(lastTab==="pivot")renderPivot();
+    else if(lastTab==="chart"){renderKPIs();renderCharts()}
+  }
+  function renderPivot(){
+    const out=document.getElementById("pivotOut");
+    const rf=document.getElementById("pRow").value;
+    let cf=document.getElementById("pCol").value;
+    const mk=document.getElementById("pVal").value;
+    if(cf===rf){cf="";document.getElementById("pCol").value=""}
+    const rows=analyticsRows();
+    if(!rows.length){out.innerHTML='<div class="empty">Belum ada transaksi di periode ini.</div>';return}
+    const R=PIVOT_FIELDS[rf], C=cf?PIVOT_FIELDS[cf]:null, M=MEASURES[mk];
+    const cells={},rowTot={},colTot={};let grand=0;
+    rows.forEach(x=>{
+      const r=R.key(x), c=C?C.key(x):"Nilai", v=M.fn(x);
+      cells[r]=cells[r]||{};cells[r][c]=(cells[r][c]||0)+v;
+      rowTot[r]=(rowTot[r]||0)+v;colTot[c]=(colTot[c]||0)+v;grand+=v;
+    });
+    const sortKeys=(keys,field,tot)=>field==="produk"?keys.sort((a,b)=>tot[b]-tot[a]):keys.sort();
+    const rkeys=sortKeys(Object.keys(rowTot),rf,rowTot), ckeys=sortKeys(Object.keys(colTot),cf,colTot);
+    let max=0;
+    rkeys.forEach(r=>ckeys.forEach(c=>{const v=(cells[r]&&cells[r][c])||0;if(v>max)max=v}));
+    const f=v=>M.money?rupiah(v):Number(v).toLocaleString("id-ID");
+    const heat=v=>(v>0&&max>0)?` style="background:rgba(217,143,164,${(0.12+0.8*v/max).toFixed(2)})"`:"";
+    const hasTot=!!C;
+    out.innerHTML=`<table class="pv">
+      <thead><tr><th class="corner">${R.label}${C?` ↓ &nbsp;·&nbsp; ${C.label} →`:""}</th>${ckeys.map(c=>`<th>${escapeHtml(keyLabel(cf,c))}</th>`).join("")}${hasTot?'<th class="tot">Total</th>':""}</tr></thead>
+      <tbody>${rkeys.map(r=>`<tr><th class="rh">${escapeHtml(keyLabel(rf,r))}</th>${ckeys.map(c=>{const v=(cells[r]&&cells[r][c])||0;return `<td${heat(v)}>${f(v)}</td>`}).join("")}${hasTot?`<td class="tot">${f(rowTot[r])}</td>`:""}</tr>`).join("")}</tbody>
+      <tfoot><tr><th class="rh">Grand total</th>${ckeys.map(c=>`<td>${f(colTot[c])}</td>`).join("")}${hasTot?`<td>${f(grand)}</td>`:""}</tr></tfoot>
+    </table>`;
+  }
+  function renderKPIs(){
+    const rows=analyticsRows(), paid=rows.filter(x=>x.status==="paid"), pend=rows.filter(x=>x.status!=="paid");
+    const sum=a=>a.reduce((s,x)=>s+(Number(x.amount)||0),0);
+    const omzet=sum(paid), n=paid.length, avg=n?Math.round(omzet/n):0;
+    const byP={};paid.forEach(x=>{const k=x.name||"(tanpa nama)";byP[k]=(byP[k]||0)+(Number(x.amount)||0)});
+    const top=Object.entries(byP).sort((a,b)=>b[1]-a[1])[0];
+    document.getElementById("kpis").innerHTML=`
+      <div class="kpi"><small>Omzet lunas</small><strong>${rupiah(omzet)}</strong><em>${n} transaksi lunas</em></div>
+      <div class="kpi"><small>Rata-rata per transaksi</small><strong>${rupiah(avg)}</strong><em>dari transaksi lunas</em></div>
+      <div class="kpi"><small>Produk terlaris</small><strong style="font-size:18px">${top?escapeHtml(top[0]):"—"}</strong><em>${top&&omzet?Math.round(top[1]/omzet*100)+"% dari omzet":"belum ada penjualan lunas"}</em></div>
+      <div class="kpi"><small>Menunggu konfirmasi</small><strong>${pend.length}</strong><em>${rupiah(sum(pend))} belum terkonfirmasi</em></div>`;
+  }
+  function mkChart(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart(document.getElementById(id),cfg)}
+  function trendSeries(rows){
+    const dates=rows.map(x=>new Date(x.date));
+    const min=new Date(Math.min(...dates)), max=new Date(Math.max(...dates));
+    const gran=dayKey(min)===dayKey(max)?"jam":((max-min)/864e5>62?"bulan":"tanggal");
+    const keys=[];
+    if(gran==="jam"){for(let h=min.getHours();h<=max.getHours();h++)keys.push(pad2(h)+":00")}
+    else if(gran==="tanggal"){for(let d=new Date(min.getFullYear(),min.getMonth(),min.getDate()),e=new Date(max.getFullYear(),max.getMonth(),max.getDate());d<=e;d.setDate(d.getDate()+1))keys.push(dayKey(d))}
+    else{for(let d=new Date(min.getFullYear(),min.getMonth(),1),e=new Date(max.getFullYear(),max.getMonth(),1);d<=e;d.setMonth(d.getMonth()+1))keys.push(monthKey(d))}
+    const keyOf=gran==="jam"?(x=>pad2(new Date(x.date).getHours())+":00"):gran==="tanggal"?(x=>dayKey(x.date)):(x=>monthKey(x.date));
+    const omz={},cnt={};keys.forEach(k=>{omz[k]=0;cnt[k]=0});
+    rows.forEach(x=>{const k=keyOf(x);cnt[k]=(cnt[k]||0)+1;if(x.status==="paid")omz[k]+=Number(x.amount)||0});
+    return {labels:keys.map(k=>keyLabel(gran,k)),omz:keys.map(k=>omz[k]),cnt:keys.map(k=>cnt[k])};
+  }
+  function renderCharts(){
+    const rows=analyticsRows(), paid=rows.filter(x=>x.status==="paid");
+    const grid=document.getElementById("chartGrid"), msg=document.getElementById("chartMsg"), pills=document.getElementById("pills");
+    const reset=()=>{Object.keys(charts).forEach(k=>{charts[k].destroy();delete charts[k]})};
+    if(!rows.length){reset();grid.style.display="none";pills.innerHTML="";msg.innerHTML='<div class="empty">Belum ada transaksi di periode ini.</div>';return}
+    if(typeof Chart==="undefined"){reset();grid.style.display="none";pills.innerHTML="";msg.innerHTML='<div class="empty">Grafik belum bisa dimuat. Pastikan koneksi internet aktif, lalu muat ulang halaman.</div>';return}
+    grid.style.display="grid";msg.innerHTML="";
+    Chart.defaults.color="#82736c";Chart.defaults.font.family="Inter, ui-sans-serif, system-ui, sans-serif";
+    const byP={};paid.forEach(x=>{const k=x.name||"(tanpa nama)";byP[k]=(byP[k]||0)+(Number(x.amount)||0)});
+    const prods=Object.entries(byP).sort((a,b)=>b[1]-a[1]);
+    const hourCnt={};rows.forEach(x=>{const h=new Date(x.date).getHours();hourCnt[h]=(hourCnt[h]||0)+1});
+    const peak=Object.entries(hourCnt).sort((a,b)=>b[1]-a[1])[0];
+    const dayOmz={};paid.forEach(x=>{const k=dayKey(x.date);dayOmz[k]=(dayOmz[k]||0)+(Number(x.amount)||0)});
+    const bestDay=Object.entries(dayOmz).sort((a,b)=>b[1]-a[1])[0];
+    pills.innerHTML=(peak?`<span class="pill">🔥 Jam paling ramai: <b>${pad2(peak[0])}:00</b> (${peak[1]} transaksi)</span>`:"")+(bestDay?`<span class="pill">🏆 Hari terbaik: <b>${keyLabel("tanggal",bestDay[0])}</b> (${rupiah(bestDay[1])})</span>`:"");
+    const tr=trendSeries(rows);
+    mkChart("cTrend",{type:"bar",data:{labels:tr.labels,datasets:[
+      {type:"line",label:"Omzet lunas",data:tr.omz,borderColor:"#c77f96",backgroundColor:"rgba(217,143,164,.18)",fill:true,tension:.35,pointRadius:3,pointBackgroundColor:"#c77f96",yAxisID:"y",order:1},
+      {type:"bar",label:"Jumlah transaksi",data:tr.cnt,backgroundColor:"rgba(102,124,93,.32)",borderRadius:6,yAxisID:"y1",order:2}
+    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"bottom"},tooltip:{callbacks:{label:c=>c.dataset.yAxisID==="y"?` Omzet: ${rupiah(c.raw)}`:` Transaksi: ${c.raw}`}}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{callback:v=>shortRp(v)},grid:{color:"#f1ebe7"}},y1:{beginAtZero:true,position:"right",ticks:{precision:0},grid:{display:false}}}}});
+    mkChart("cProduk",{type:"bar",data:{labels:prods.map(p=>p[0]),datasets:[{label:"Omzet",data:prods.map(p=>p[1]),backgroundColor:prods.map((_,i)=>PALETTE[i%PALETTE.length]),borderRadius:8}]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${rupiah(c.raw)}`}}},scales:{x:{beginAtZero:true,ticks:{callback:v=>shortRp(v)},grid:{color:"#f1ebe7"}},y:{grid:{display:false}}}}});
+    mkChart("cShare",{type:"doughnut",data:{labels:prods.map(p=>p[0]),datasets:[{data:prods.map(p=>p[1]),backgroundColor:prods.map((_,i)=>PALETTE[i%PALETTE.length]),borderColor:"#fff",borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:"62%",plugins:{legend:{position:"right",labels:{boxWidth:12,padding:12}},tooltip:{callbacks:{label:c=>{const t=c.dataset.data.reduce((a,b)=>a+b,0);return ` ${c.label}: ${rupiah(c.raw)} (${t?Math.round(c.raw/t*100):0}%)`}}}}}});
+    const hrs=rows.map(x=>new Date(x.date).getHours()), lo=Math.min(...hrs), hi=Math.max(...hrs);
+    const hL=[],hP=[],hM=[];
+    for(let h=lo;h<=hi;h++){const sub=rows.filter(x=>new Date(x.date).getHours()===h);hL.push(pad2(h)+":00");hP.push(sub.filter(x=>x.status==="paid").length);hM.push(sub.filter(x=>x.status!=="paid").length)}
+    mkChart("cJam",{type:"bar",data:{labels:hL,datasets:[
+      {label:"Lunas",data:hP,backgroundColor:"#667c5d",borderRadius:6,stack:"s"},
+      {label:"Menunggu",data:hM,backgroundColor:"#e8b4a0",borderRadius:6,stack:"s"}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,ticks:{precision:0},grid:{color:"#f1ebe7"}}}}});
   }
   function toggleMute(){
     const v=document.getElementById('heroVid');
