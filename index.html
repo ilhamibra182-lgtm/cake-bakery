@@ -243,13 +243,14 @@
           <button class="stab" id="tabBtnPivot" type="button" onclick="switchTab('pivot')">🧮 Pivot</button>
           <button class="stab" id="tabBtnChart" type="button" onclick="switchTab('chart')">📈 Grafik</button>
         </div>
-        <div id="aPeriodWrap" style="display:none"><label class="tiny">Periode analisis</label><select id="aPeriod" onchange="renderAnalytics()"><option value="all">Semua waktu</option><option value="today">Hari ini</option><option value="7d">7 hari terakhir</option><option value="month">Bulan ini</option></select></div>
+        <button class="btn btn-small" type="button" onclick="exportXLSX()" style="margin-left:auto">⬇ Export Excel (.xlsx)</button>
+        <div id="aPeriodWrap"><label class="tiny">Periode</label><select id="aPeriod" onchange="renderAnalytics()"><option value="all">Semua waktu</option><option value="today">Hari ini</option><option value="7d">7 hari terakhir</option><option value="month">Bulan ini</option></select></div>
       </div>
       <div class="tab-panel" id="tabData"><div class="sheet-bar">
-        <div><label class="tiny">Periode</label><select id="fPeriod" onchange="renderSheet()"><option value="all">Semua waktu</option><option value="today">Hari ini</option><option value="7d">7 hari terakhir</option><option value="month">Bulan ini</option></select></div>
+        
         <div><label class="tiny">Status</label><select id="fStatus" onchange="renderSheet()"><option value="all">Semua status</option><option value="paid">Lunas</option><option value="pending">Menunggu</option></select></div>
         <button class="btn btn-small" type="button" onclick="addSheetRow()">+ Baris baru</button>
-        <button class="btn btn-small" type="button" onclick="exportCSV()">⬇ Export ke Excel (CSV)</button>
+        <button class="btn btn-small" type="button" onclick="exportCSV()">⬇ Export CSV (data tabel)</button>
       </div>
       <div class="sheet-wrap">
         <table class="xl">
@@ -376,7 +377,7 @@
     return true;
   }
   function filteredRows(){
-    const p=document.getElementById("fPeriod").value, st=document.getElementById("fStatus").value;
+    const p=document.getElementById("aPeriod").value, st=document.getElementById("fStatus").value;
     return getSales().filter(x=>periodOk(x.date,p)&&(st==="all"||x.status===st)).sort((a,b)=>new Date(a.date)-new Date(b.date));
   }
   function renderSheet(){
@@ -401,7 +402,7 @@
     saveSales(d);renderDashboard();renderSheet();
   }
   function addSheetRow(){
-    document.getElementById("fPeriod").value="all";
+    
     document.getElementById("fStatus").value="all";
     const d=getSales();
     d.unshift({id:Date.now()+Math.random().toString(16).slice(2),date:new Date().toISOString(),name:"",amount:0,status:"paid"});
@@ -462,11 +463,11 @@
       document.getElementById(panels[k]).style.display=k===t?"block":"none";
       document.getElementById("tabBtn"+k.charAt(0).toUpperCase()+k.slice(1)).classList.toggle("active",k===t);
     });
-    document.getElementById("aPeriodWrap").style.display=t==="data"?"none":"block";
+
     if(t==="data")renderSheet();else renderAnalytics();
   }
   function renderAnalytics(){
-    if(lastTab==="pivot")renderPivot();
+    if(lastTab==="data")renderSheet();else if(lastTab==="pivot")renderPivot();
     else if(lastTab==="chart"){renderKPIs();renderCharts()}
   }
   function renderPivot(){
@@ -521,7 +522,7 @@
     const keyOf=gran==="jam"?(x=>pad2(new Date(x.date).getHours())+":00"):gran==="tanggal"?(x=>dayKey(x.date)):(x=>monthKey(x.date));
     const omz={},cnt={};keys.forEach(k=>{omz[k]=0;cnt[k]=0});
     rows.forEach(x=>{const k=keyOf(x);cnt[k]=(cnt[k]||0)+1;if(x.status==="paid")omz[k]+=Number(x.amount)||0});
-    return {labels:keys.map(k=>keyLabel(gran,k)),omz:keys.map(k=>omz[k]),cnt:keys.map(k=>cnt[k])};
+    return {gran,keys,labels:keys.map(k=>keyLabel(gran,k)),omz:keys.map(k=>omz[k]),cnt:keys.map(k=>cnt[k])};
   }
   function renderCharts(){
     const rows=analyticsRows(), paid=rows.filter(x=>x.status==="paid");
@@ -552,6 +553,218 @@
       {label:"Lunas",data:hP,backgroundColor:"#667c5d",borderRadius:6,stack:"s"},
       {label:"Menunggu",data:hM,backgroundColor:"#e8b4a0",borderRadius:6,stack:"s"}
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,ticks:{precision:0},grid:{color:"#f1ebe7"}}}}});
+  }
+  // ===== Export Excel (.xlsx): sheet Pivot + Grafik (chart native) + Data, ditulis langsung sebagai OOXML =====
+  const xesc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&apos;"}[c]));
+  const colL=i=>{let s="";i++;while(i>0){s=String.fromCharCode(65+(i-1)%26)+s;i=Math.floor((i-1)/26)}return s};
+  const xlSerial=(y,m,d)=>Math.round((Date.UTC(y,m-1,d)-Date.UTC(1899,11,30))/864e5);
+  function cellXML(ref,val,st,f){
+    const s=st!=null?` s="${st}"`:"";
+    if(f!=null){
+      if(typeof val==="string")return `<c r="${ref}"${s} t="str"><f>${xesc(f)}</f><v>${xesc(val)}</v></c>`;
+      return `<c r="${ref}"${s}><f>${xesc(f)}</f><v>${Number(val)||0}</v></c>`;
+    }
+    if(val===null||val===undefined||val==="")return `<c r="${ref}"${s}/>`;
+    if(typeof val==="number")return `<c r="${ref}"${s}><v>${val}</v></c>`;
+    return `<c r="${ref}"${s} t="inlineStr"><is><t xml:space="preserve">${xesc(val)}</t></is></c>`;
+  }
+  function sheetBuilder(){
+    const rows={};
+    return{
+      put(r,c,val,st,f){(rows[r]=rows[r]||{})[c]=cellXML(colL(c)+r,val,st,f)},
+      data(){return Object.keys(rows).map(Number).sort((a,b)=>a-b).map(r=>`<row r="${r}">${Object.keys(rows[r]).map(Number).sort((a,b)=>a-b).map(c=>rows[r][c]).join("")}</row>`).join("")}
+    };
+  }
+  const colsXML=arr=>arr.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("");
+  const XL_PAGE='<pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/>';
+  function wsXML(views,cols,data,after,pr=""){
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${pr}<sheetViews>${views}</sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${cols}</cols><sheetData>${data}</sheetData>${after}</worksheet>`;
+  }
+  const XL_STYLES=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="&quot;Rp &quot;#,##0"/><numFmt numFmtId="165" formatCode="dd mmm yyyy"/></numFmts><fonts count="7"><font><sz val="11"/><color rgb="FF332925"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="11"/><color rgb="FF332925"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="18"/><color rgb="FF332925"/><name val="Georgia"/><family val="1"/></font><font><i/><sz val="10"/><color rgb="FF82736C"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="12"/><color rgb="FF9E6576"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="13"/><color rgb="FF332925"/><name val="Georgia"/><family val="1"/></font></fonts><fills count="6"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD98FA4"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFBF7F5"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF302722"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF3F6"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFEADFD9"/></left><right style="thin"><color rgb="FFEADFD9"/></right><top style="thin"><color rgb="FFEADFD9"/></top><bottom style="thin"><color rgb="FFEADFD9"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="18"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left"/></xf><xf numFmtId="3" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/><xf numFmtId="9" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/><xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="2" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="164" fontId="2" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="3" fontId="2" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="9" fontId="2" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="4" fillId="5" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="164" fontId="6" fillId="5" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1"/><xf numFmtId="3" fontId="6" fillId="5" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1"/><xf numFmtId="0" fontId="6" fillId="5" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles><dxfs count="0"/><tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/></styleSheet>`;
+  // Style index: 1 header, 2 teks, 3 rupiah, 4 tanggal, 5 angka, 6 persen, 7 judul, 8 subjudul, 9 seksi, 10-13 total, 14-17 KPI
+  const CRC_T=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+  function crc32(u8){let c=0xFFFFFFFF;for(let i=0;i<u8.length;i++)c=CRC_T[(c^u8[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0}
+  function makeZip(files){
+    const enc=new TextEncoder(), parts=[], central=[];
+    let offset=0;
+    const u16=v=>[v&255,(v>>>8)&255], u32=v=>[v&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255];
+    const now=new Date(), dTime=(now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1), dDate=((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate();
+    files.forEach(f=>{
+      const name=enc.encode(f.name), data=f.data, crc=crc32(data), size=data.length;
+      const head=[0x50,0x4b,0x03,0x04, 20,0, 0,0, 0,0, ...u16(dTime), ...u16(dDate), ...u32(crc), ...u32(size), ...u32(size), ...u16(name.length), ...u16(0)];
+      parts.push(new Uint8Array(head), name, data);
+      const cd=[0x50,0x4b,0x01,0x02, 20,0, 20,0, 0,0, 0,0, ...u16(dTime), ...u16(dDate), ...u32(crc), ...u32(size), ...u32(size), ...u16(name.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(offset)];
+      central.push(new Uint8Array(cd), name);
+      offset+=head.length+name.length+size;
+    });
+    let cdSize=0; central.forEach(p=>cdSize+=p.length);
+    const end=new Uint8Array([0x50,0x4b,0x05,0x06, 0,0, 0,0, ...u16(files.length), ...u16(files.length), ...u32(cdSize), ...u32(offset), 0,0]);
+    const all=[...parts,...central,end];
+    const out=new Uint8Array(all.reduce((s,p)=>s+p.length,0));
+    let o=0; all.forEach(p=>{out.set(p,o);o+=p.length});
+    return out;
+  }
+  const xsStr=(f,vals)=>`<c:strRef><c:f>${f}</c:f><c:strCache><c:ptCount val="${vals.length}"/>${vals.map((v,i)=>`<c:pt idx="${i}"><c:v>${xesc(v)}</c:v></c:pt>`).join("")}</c:strCache></c:strRef>`;
+  const xsNum=(f,vals,fmt="#,##0")=>`<c:numRef><c:f>${f}</c:f><c:numCache><c:formatCode>${xesc(fmt)}</c:formatCode><c:ptCount val="${vals.length}"/>${vals.map((v,i)=>`<c:pt idx="${i}"><c:v>${v}</c:v></c:pt>`).join("")}</c:numCache></c:numRef>`;
+  const solid=c=>`<c:spPr><a:solidFill><a:srgbClr val="${c}"/></a:solidFill></c:spPr>`;
+  const solidDot=c=>`<c:spPr><a:solidFill><a:srgbClr val="${String(c).replace("#","")}"/></a:solidFill><a:ln w="19050"><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill></a:ln></c:spPr>`;
+  const XL_GRID='<c:majorGridlines><c:spPr><a:ln w="6350"><a:solidFill><a:srgbClr val="F1EBE7"/></a:solidFill></a:ln></c:spPr></c:majorGridlines>';
+  const catAx=(id,cross,pos,fmt="General",del=0,orient="minMax")=>`<c:catAx><c:axId val="${id}"/><c:scaling><c:orientation val="${orient}"/></c:scaling><c:delete val="${del}"/><c:axPos val="${pos}"/><c:numFmt formatCode="${fmt}" sourceLinked="0"/><c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/><c:crossAx val="${cross}"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/><c:noMultiLvlLbl val="0"/></c:catAx>`;
+  const valAx=(id,cross,pos,crosses="autoZero",grid=true)=>`<c:valAx><c:axId val="${id}"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="${pos}"/>${grid?XL_GRID:""}<c:numFmt formatCode="#,##0" sourceLinked="0"/><c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/><c:crossAx val="${cross}"/><c:crosses val="${crosses}"/><c:crossBetween val="between"/></c:valAx>`;
+  const LEG_B='<c:legend><c:legendPos val="b"/><c:overlay val="0"/></c:legend>';
+  const LEG_R='<c:legend><c:legendPos val="r"/><c:overlay val="0"/></c:legend>';
+  function xlChart(title,plot,legend){
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><c:roundedCorners val="0"/><c:chart><c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="1300" b="1"/></a:pPr><a:r><a:rPr lang="id-ID" sz="1300" b="1"><a:solidFill><a:srgbClr val="332925"/></a:solidFill></a:rPr><a:t>${xesc(title)}</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title><c:autoTitleDeleted val="0"/><c:plotArea><c:layout/>${plot}</c:plotArea>${legend}<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart><c:spPr><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill><a:ln w="9525"><a:solidFill><a:srgbClr val="EADFD9"/></a:solidFill></a:ln></c:spPr><c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="900"><a:solidFill><a:srgbClr val="82736C"/></a:solidFill></a:defRPr></a:pPr><a:endParaRPr lang="id-ID"/></a:p></c:txPr></c:chartSpace>`;
+  }
+  function buildXLSX(){
+    const rows=analyticsRows().sort((a,b)=>new Date(a.date)-new Date(b.date));
+    if(!rows.length)return null;
+    const N=rows.length+1;
+    const R=c=>`Data!$${c}$2:$${c}$${N}`;
+    const p=document.getElementById("aPeriod").value;
+    const periodTxt={all:"Semua waktu",today:"Hari ini","7d":"7 hari terakhir",month:"Bulan ini"}[p];
+    const stamp=new Date().toLocaleString("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+    const paidOf=x=>x.status==="paid"?(Number(x.amount)||0):0;
+    const pendOf=x=>x.status==="paid"?0:(Number(x.amount)||0);
+
+    // --- Sheet Data ---
+    const D=sheetBuilder();
+    ["No","Tanggal","Jam","Bulan","Pesanan","Nominal (Rp)","Status"].forEach((h,c)=>D.put(1,c,h,1));
+    rows.forEach((x,i)=>{
+      const r=i+2, d=new Date(x.date);
+      D.put(r,0,i+1,5);
+      D.put(r,1,xlSerial(d.getFullYear(),d.getMonth()+1,d.getDate()),4);
+      D.put(r,2,`${pad2(d.getHours())}:00`,2);
+      D.put(r,3,monthKey(x.date),2);
+      D.put(r,4,x.name||"(tanpa nama)",2);
+      D.put(r,5,Number(x.amount)||0,3);
+      D.put(r,6,x.status==="paid"?"Lunas":"Menunggu",2);
+    });
+
+    // --- Sheet Pivot (rumus SUMPRODUCT ke sheet Data, jadi tetap hidup) ---
+    const P=sheetBuilder();
+    P.put(1,0,"Rekap Penjualan MINO CAKE",7);
+    P.put(2,0,`Periode: ${periodTxt}   •   Diekspor: ${stamp}`,8);
+    P.put(4,0,"1. Penjualan per produk",9);
+    ["Produk","Jumlah transaksi","Omzet lunas (Rp)","Menunggu (Rp)","Total nominal (Rp)","Porsi omzet"].forEach((h,c)=>P.put(5,c,h,1));
+    const byP={};
+    rows.forEach(x=>{const k=x.name||"(tanpa nama)";const o=byP[k]||(byP[k]={n:0,paid:0,pend:0});o.n++;o.paid+=paidOf(x);o.pend+=pendOf(x)});
+    const prods=Object.keys(byP).sort((a,b)=>byP[b].paid-byP[a].paid||byP[b].n-byP[a].n);
+    const P0=6, P1=P0+prods.length-1, PT=P1+1;
+    const totPaid=rows.reduce((s,x)=>s+paidOf(x),0), totPend=rows.reduce((s,x)=>s+pendOf(x),0);
+    prods.forEach((k,i)=>{
+      const r=P0+i, o=byP[k], ref=`$A${r}`;
+      P.put(r,0,k,2);
+      P.put(r,1,o.n,5,`SUMPRODUCT(--(${R("E")}=${ref}))`);
+      P.put(r,2,o.paid,3,`SUMPRODUCT((${R("E")}=${ref})*(${R("G")}="Lunas")*${R("F")})`);
+      P.put(r,3,o.pend,3,`SUMPRODUCT((${R("E")}=${ref})*(${R("G")}="Menunggu")*${R("F")})`);
+      P.put(r,4,o.paid+o.pend,3,`C${r}+D${r}`);
+      P.put(r,5,totPaid?o.paid/totPaid:0,6,`IF($C$${PT}=0,0,C${r}/$C$${PT})`);
+    });
+    P.put(PT,0,"Grand total",10);
+    P.put(PT,1,rows.length,12,`SUM(B${P0}:B${P1})`);
+    P.put(PT,2,totPaid,11,`SUM(C${P0}:C${P1})`);
+    P.put(PT,3,totPend,11,`SUM(D${P0}:D${P1})`);
+    P.put(PT,4,totPaid+totPend,11,`SUM(E${P0}:E${P1})`);
+    P.put(PT,5,totPaid?1:0,13,`SUM(F${P0}:F${P1})`);
+
+    const T=trendSeries(rows);
+    let r=PT+3;
+    P.put(r,0,"2. Tren penjualan",9); r++;
+    ["Periode","Jumlah transaksi","Omzet lunas (Rp)"].forEach((h,c)=>P.put(r,c,h,1)); r++;
+    const T0=r, T1=T0+T.keys.length-1, keyCol={jam:"C",tanggal:"B",bulan:"D"}[T.gran];
+    T.keys.forEach((k,i)=>{
+      const rr=T0+i, ref=`$A${rr}`;
+      if(T.gran==="tanggal"){const [y,m,d]=k.split("-");P.put(rr,0,xlSerial(+y,+m,+d),4)}
+      else P.put(rr,0,k,2);
+      P.put(rr,1,T.cnt[i],5,`SUMPRODUCT(--(${R(keyCol)}=${ref}))`);
+      P.put(rr,2,T.omz[i],3,`SUMPRODUCT((${R(keyCol)}=${ref})*(${R("G")}="Lunas")*${R("F")})`);
+    });
+
+    r=T1+3;
+    P.put(r,0,"3. Penjualan per jam",9); r++;
+    ["Jam","Lunas (transaksi)","Menunggu (transaksi)","Omzet lunas (Rp)"].forEach((h,c)=>P.put(r,c,h,1)); r++;
+    const hrs=rows.map(x=>new Date(x.date).getHours()), lo=Math.min(...hrs), hi=Math.max(...hrs);
+    const H0=r;
+    for(let h=lo;h<=hi;h++,r++){
+      const sub=rows.filter(x=>new Date(x.date).getHours()===h), ref=`$A${r}`;
+      P.put(r,0,`${pad2(h)}:00`,2);
+      P.put(r,1,sub.filter(x=>x.status==="paid").length,5,`SUMPRODUCT((${R("C")}=${ref})*(${R("G")}="Lunas"))`);
+      P.put(r,2,sub.filter(x=>x.status!=="paid").length,5,`SUMPRODUCT((${R("C")}=${ref})*(${R("G")}="Menunggu"))`);
+      P.put(r,3,sub.reduce((s,x)=>s+paidOf(x),0),3,`SUMPRODUCT((${R("C")}=${ref})*(${R("G")}="Lunas")*${R("F")})`);
+    }
+    const H1=r-1;
+
+    // --- Sheet Grafik: KPI + 4 chart native ---
+    const G=sheetBuilder();
+    G.put(1,1,"Grafik Penjualan MINO CAKE",7);
+    G.put(2,1,`Periode: ${periodTxt}`,8);
+    const paidCnt=rows.filter(x=>x.status==="paid").length, pendCnt=rows.length-paidCnt;
+    G.put(4,1,"Omzet lunas",14); G.put(4,4,"Transaksi lunas",14); G.put(4,7,"Rata-rata / transaksi",14); G.put(4,10,"Produk terlaris",14); G.put(4,13,"Menunggu konfirmasi",14);
+    G.put(5,1,totPaid,15,`Pivot!$C$${PT}`);
+    G.put(5,4,paidCnt,16,`COUNTIF(${R("G")},"Lunas")`);
+    G.put(5,7,paidCnt?totPaid/paidCnt:0,15,`IF(E5=0,0,B5/E5)`);
+    G.put(5,10,totPaid?prods[0]:"—",17,`IF(Pivot!$C$${PT}=0,"—",INDEX(Pivot!$A$${P0}:$A$${P1},MATCH(MAX(Pivot!$C$${P0}:$C$${P1}),Pivot!$C$${P0}:$C$${P1},0)))`);
+    G.put(5,13,pendCnt,16,`COUNTIF(${R("G")},"Menunggu")`);
+
+    const prodPaid=prods.map(k=>byP[k].paid);
+    const pieDpt=prods.map((_,i)=>`<c:dPt><c:idx val="${i}"/><c:bubble3D val="0"/>${solidDot(PALETTE[i%PALETTE.length])}</c:dPt>`).join("");
+    const chart1=xlChart("Omzet lunas per produk",
+      `<c:barChart><c:barDir val="bar"/><c:grouping val="clustered"/><c:varyColors val="0"/><c:ser><c:idx val="0"/><c:order val="0"/><c:tx><c:v>Omzet lunas</c:v></c:tx>${solid("D98FA4")}<c:invertIfNegative val="0"/><c:cat>${xsStr(`Pivot!$A$${P0}:$A$${P1}`,prods)}</c:cat><c:val>${xsNum(`Pivot!$C$${P0}:$C$${P1}`,prodPaid)}</c:val></c:ser><c:gapWidth val="60"/><c:axId val="1001"/><c:axId val="1002"/></c:barChart>${catAx(1001,1002,"l","General",0,"maxMin")}${valAx(1002,1001,"b","max")}`, "");
+    const chart2=xlChart("Porsi omzet per produk",
+      `<c:doughnutChart><c:varyColors val="1"/><c:ser><c:idx val="0"/><c:order val="0"/><c:tx><c:v>Omzet lunas</c:v></c:tx>${pieDpt}<c:cat>${xsStr(`Pivot!$A$${P0}:$A$${P1}`,prods)}</c:cat><c:val>${xsNum(`Pivot!$C$${P0}:$C$${P1}`,prodPaid)}</c:val></c:ser><c:firstSliceAng val="0"/><c:holeSize val="58"/></c:doughnutChart>`, LEG_R);
+    const trendCat=T.gran==="tanggal"
+      ? `<c:cat>${xsNum(`Pivot!$A$${T0}:$A$${T1}`,T.keys.map(k=>{const [y,m,d]=k.split("-");return xlSerial(+y,+m,+d)}),"dd mmm")}</c:cat>`
+      : `<c:cat>${xsStr(`Pivot!$A$${T0}:$A$${T1}`,T.keys)}</c:cat>`;
+    const chart3=xlChart("Tren omzet & jumlah transaksi",
+      `<c:barChart><c:barDir val="col"/><c:grouping val="clustered"/><c:varyColors val="0"/><c:ser><c:idx val="0"/><c:order val="0"/><c:tx><c:v>Jumlah transaksi</c:v></c:tx>${solid("A9BC9B")}<c:invertIfNegative val="0"/>${trendCat}<c:val>${xsNum(`Pivot!$B$${T0}:$B$${T1}`,T.cnt)}</c:val></c:ser><c:gapWidth val="60"/><c:axId val="2001"/><c:axId val="2002"/></c:barChart>`+
+      `<c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/><c:ser><c:idx val="1"/><c:order val="1"/><c:tx><c:v>Omzet lunas</c:v></c:tx><c:spPr><a:ln w="28575" cap="rnd"><a:solidFill><a:srgbClr val="C77F96"/></a:solidFill><a:round/></a:ln></c:spPr><c:marker><c:symbol val="circle"/><c:size val="6"/><c:spPr><a:solidFill><a:srgbClr val="C77F96"/></a:solidFill><a:ln><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill></a:ln></c:spPr></c:marker>${trendCat}<c:val>${xsNum(`Pivot!$C$${T0}:$C$${T1}`,T.omz)}</c:val><c:smooth val="0"/></c:ser><c:marker val="1"/><c:axId val="2003"/><c:axId val="2004"/></c:lineChart>`+
+      catAx(2001,2002,"b",T.gran==="tanggal"?"dd mmm":"General")+valAx(2002,2001,"l")+catAx(2003,2004,"b","General",1)+valAx(2004,2003,"r","max",false),
+      LEG_B);
+    const hourSer=(idx,name,col,color,vals)=>`<c:ser><c:idx val="${idx}"/><c:order val="${idx}"/><c:tx><c:v>${name}</c:v></c:tx>${solid(color)}<c:invertIfNegative val="0"/><c:cat>${xsStr(`Pivot!$A$${H0}:$A$${H1}`,P_hours)}</c:cat><c:val>${xsNum(`Pivot!$${col}$${H0}:$${col}$${H1}`,vals)}</c:val></c:ser>`;
+    const P_hours=[]; for(let h=lo;h<=hi;h++)P_hours.push(`${pad2(h)}:00`);
+    const hourPaid=P_hours.map((_,i)=>rows.filter(x=>new Date(x.date).getHours()===lo+i&&x.status==="paid").length);
+    const hourPend=P_hours.map((_,i)=>rows.filter(x=>new Date(x.date).getHours()===lo+i&&x.status!=="paid").length);
+    const chart4=xlChart("Transaksi per jam (lunas vs menunggu)",
+      `<c:barChart><c:barDir val="col"/><c:grouping val="stacked"/><c:varyColors val="0"/>${hourSer(0,"Lunas","B","667C5D",hourPaid)}${hourSer(1,"Menunggu","C","E8B4A0",hourPend)}<c:gapWidth val="60"/><c:overlap val="100"/><c:axId val="3001"/><c:axId val="3002"/></c:barChart>${catAx(3001,3002,"b")}${valAx(3002,3001,"l")}`,
+      LEG_B);
+    const xlCharts=[chart1,chart2,chart3,chart4];
+
+    // Posisi chart di sheet Grafik (kolom & baris 0-based)
+    const anchors=[[1,7,9,28],[9,7,17,28],[1,30,17,52],[1,54,17,74]];
+    const drawing=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">`+
+      anchors.map(([c1,r1,c2,r2],i)=>`<xdr:twoCellAnchor editAs="oneCell"><xdr:from><xdr:col>${c1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${r1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>${c2}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${r2}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="${i+2}" name="Grafik ${i+1}"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr><xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="rId${i+1}"/></a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor>`).join("")+
+      `</xdr:wsDr>`;
+    const drawingRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">`+xlCharts.map((_,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart${i+1}.xml"/>`).join("")+`</Relationships>`;
+
+    const sheetRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>`;
+    const WS="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet";
+    const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>`+xlCharts.map((_,i)=>`<Override PartName="/xl/charts/chart${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>`).join("")+`</Types>`;
+    const rootRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+    const workbook=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="24000" windowHeight="12000" activeTab="0"/></bookViews><sheets><sheet name="Pivot" sheetId="1" r:id="rId1"/><sheet name="Grafik" sheetId="2" r:id="rId2"/><sheet name="Data" sheetId="3" r:id="rId3"/></sheets><definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="2" hidden="1">Data!$A$1:$G$${N}</definedName></definedNames><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`;
+    const wbRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${WS}" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${WS}" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="${WS}" Target="worksheets/sheet3.xml"/><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+
+    const FIT='<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>', LAND='<pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/>';
+    const sheet1=wsXML(`<sheetView showGridLines="0" tabSelected="1" workbookViewId="0"/>`,colsXML([34,20,22,20,22,16]),P.data(),XL_PAGE+LAND,FIT);
+    const sheet2=wsXML(`<sheetView showGridLines="0" workbookViewId="0"/>`,colsXML([2,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16]),G.data(),XL_PAGE+LAND+'<drawing r:id="rId1"/>',FIT);
+    const sheet3=wsXML(`<sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A2" sqref="A2"/></sheetView>`,colsXML([6,14,9,11,36,16,12]),D.data(),`<autoFilter ref="A1:G${N}"/>`+XL_PAGE+LAND,FIT);
+
+    const parts=[
+      ["[Content_Types].xml",ct],["_rels/.rels",rootRels],["xl/workbook.xml",workbook],["xl/_rels/workbook.xml.rels",wbRels],["xl/styles.xml",XL_STYLES],
+      ["xl/worksheets/sheet1.xml",sheet1],["xl/worksheets/sheet2.xml",sheet2],["xl/worksheets/sheet3.xml",sheet3],
+      ["xl/worksheets/_rels/sheet2.xml.rels",sheetRels],["xl/drawings/drawing1.xml",drawing],["xl/drawings/_rels/drawing1.xml.rels",drawingRels]
+    ].concat(xlCharts.map((c,i)=>[`xl/charts/chart${i+1}.xml`,c]));
+    const enc=new TextEncoder();
+    return makeZip(parts.map(([name,txt])=>({name,data:enc.encode(txt)})));
+  }
+  function exportXLSX(){
+    const bytes=buildXLSX();
+    if(!bytes){alert("Belum ada transaksi di periode ini untuk diekspor.");return}
+    const url=URL.createObjectURL(new Blob([bytes],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+    const a=document.createElement("a");
+    a.href=url;a.download=`rekap-penjualan-mino-cake-${dayKey(new Date())}.xlsx`;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
   function toggleMute(){
     const v=document.getElementById('heroVid');
