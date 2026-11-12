@@ -81,6 +81,20 @@
     .dashgrid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}.dashbox{border:1px solid var(--line);border-radius:14px;padding:15px;margin-bottom:15px}.dashbox h3{font:19px Georgia,serif;margin:0 0 12px}
     canvas{width:100%;height:190px}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:11px}th,td{text-align:left;padding:9px 7px;border-bottom:1px solid #eee;white-space:nowrap}th{color:var(--muted)}
     .tiny{font-size:10px;color:var(--muted)}.btn-small{padding:8px 12px;font-size:11px}.danger{background:#f8e9e9;color:#9c4d4d;border:0;border-radius:8px;padding:7px 9px}
+    .sheet{display:none}.sheet-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:6px 0 10px}.sheet-title{font:28px Georgia,serif;margin:6px 0 0}
+    .sheet-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:14px 0}.sheet-bar>div{min-width:140px}.sheet-bar label{display:block;margin-bottom:2px}.sheet-bar select{width:100%;margin:0;padding:9px 10px;font-size:12px}
+    .sheet-wrap{overflow:auto;max-height:480px;border:1px solid #d9cfc9;border-radius:6px;background:#fff}
+    table.xl{border-collapse:collapse;font-size:12px;width:100%;min-width:720px}
+    table.xl th,table.xl td{border:1px solid #e4dbd5;padding:0;white-space:nowrap}
+    table.xl th{background:#f5f0ed;color:var(--muted);font-weight:600;text-align:left;padding:7px 8px;position:sticky;top:0;z-index:2}
+    table.xl .rownum{background:#f5f0ed;color:var(--muted);text-align:center;font-size:11px;padding:0 8px;min-width:42px;position:sticky;left:0;z-index:1}
+    table.xl thead .rownum{z-index:3}
+    table.xl input,table.xl select{margin:0;border:0;border-radius:0;padding:7px 8px;font-size:12px;width:100%;min-width:110px;background:transparent}
+    table.xl input:focus,table.xl select:focus{outline:2px solid var(--rose);outline-offset:-2px;background:#fff8fa}
+    table.xl .num,table.xl input.num{text-align:right}
+    table.xl td.act{padding:4px 6px;text-align:center}
+    table.xl tfoot td{background:#faf6f4;font-weight:700;padding:8px}
+    .panel.wide{width:min(1140px,100%)}
     @media(max-width:900px){.catalog{grid-template-columns:repeat(2,1fr)}.product img{height:220px}}
     @media(max-width:650px){header{height:66px}.wrap{width:min(100% - 28px,1120px)}.navlinks{display:none}.hero{padding:14px 0 48px}.hero-video{border-radius:16px}.hero-video video{height:68vw;min-height:230px}.video-label{left:12px;bottom:12px;font-size:9px}.section{padding:58px 0}.catalog{gap:11px}.product img{height:145px}.product-body{padding:13px}.product h3{font-size:19px}.product p{font-size:11px}.bundles{grid-template-columns:1fr}.bundle{padding:21px}.custom-grid{grid-template-columns:1fr;gap:24px}.custom-photo{height:260px}.socials{grid-template-columns:1fr}.dashstats{grid-template-columns:repeat(2,1fr)}.dashgrid{grid-template-columns:1fr}.panel{padding:18px}}
   </style>
@@ -182,8 +196,30 @@
   <div class="panel">
     <div class="panel-top"><div><div class="eyebrow">MINO CAKE • PRIVATE AREA</div><h2>Owner dashboard</h2></div><button class="close" onclick="closeAdmin()" aria-label="Tutup">✕</button></div>
     <div class="login" id="loginBox"><p>Dashboard khusus pemilik MINO CAKE.</p><input id="adminPass" type="password" placeholder="Masukkan kata sandi" autocomplete="current-password"><button class="btn" style="width:100%" onclick="login()">Masuk dashboard</button><p id="loginError" style="color:#b44"></p></div>
+    <div class="sheet" id="sheetView">
+      <div class="sheet-top">
+        <div><div class="eyebrow">MINO CAKE • SPREADSHEET</div><div class="sheet-title">Rekap penjualan</div></div>
+        <button class="btn btn-small" type="button" onclick="hideSheet()">← Kembali ke dashboard</button>
+      </div>
+      <p class="tiny">Semua transaksi dari browser ini. Klik sel untuk mengubah pesanan, nominal, atau status. Perubahan langsung tersimpan.</p>
+      <div class="sheet-bar">
+        <div><label class="tiny">Periode</label><select id="fPeriod" onchange="renderSheet()"><option value="all">Semua waktu</option><option value="today">Hari ini</option><option value="7d">7 hari terakhir</option><option value="month">Bulan ini</option></select></div>
+        <div><label class="tiny">Status</label><select id="fStatus" onchange="renderSheet()"><option value="all">Semua status</option><option value="paid">Lunas</option><option value="pending">Menunggu</option></select></div>
+        <button class="btn btn-small" type="button" onclick="addSheetRow()">+ Baris baru</button>
+        <button class="btn btn-small" type="button" onclick="exportCSV()">⬇ Export ke Excel (CSV)</button>
+      </div>
+      <div class="sheet-wrap">
+        <table class="xl">
+          <thead><tr><th class="rownum">#</th><th>Tanggal</th><th>Jam</th><th>Pesanan</th><th>Nominal (Rp)</th><th>Status</th><th>Aksi</th></tr></thead>
+          <tbody id="sheetBody"></tbody>
+          <tfoot id="sheetFoot"></tfoot>
+        </table>
+      </div>
+      <datalist id="produkList"><option>Midi Mousse</option><option>Bento Cake</option><option>Midi Butterfly</option><option>Midi Custom</option><option>Paket Single Treats — 1 kue custom</option><option>Paket Double Happiness — 2 kue custom</option><option>Paket Triple Sweetness — 3 kue custom</option><option>Konsultasi desain custom</option></datalist>
+    </div>
     <div class="dash" id="dashboard">
       <p class="tiny">Ringkasan penjualan berdasarkan pesanan yang tercatat di browser ini. Pesanan WhatsApp baru masuk sebagai menunggu konfirmasi.</p>
+      <button class="btn btn-small" type="button" onclick="showSheet()" style="margin:0 0 18px">📊 Buka spreadsheet</button>
       <div class="dashstats">
         <div class="stat"><small>Omzet terkonfirmasi</small><strong id="revenue">Rp0</strong></div>
         <div class="stat"><small>Total transaksi</small><strong id="count">0</strong></div>
@@ -222,7 +258,7 @@
   function openAdmin(){document.getElementById("adminModal").classList.add("show");document.body.style.overflow="hidden"}
   function closeAdmin(){document.getElementById("adminModal").classList.remove("show");document.body.style.overflow="";document.getElementById("adminPass").value=""}
   function login(){if(document.getElementById("adminPass").value===ADMIN_PASSWORD){document.getElementById("loginBox").style.display="none";document.getElementById("dashboard").style.display="block";renderDashboard()}else{document.getElementById("loginError").textContent="Kata sandi belum tepat. Coba lagi."}}
-  function logout(){document.getElementById("dashboard").style.display="none";document.getElementById("loginBox").style.display="block";document.getElementById("adminPass").value=""}
+  function logout(){document.getElementById("sheetView").style.display="none";document.querySelector("#adminModal .panel").classList.remove("wide");document.getElementById("dashboard").style.display="none";document.getElementById("loginBox").style.display="block";document.getElementById("adminPass").value=""}
   function formatDate(d){return new Date(d).toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"2-digit"})}
   function renderDashboard(){
     const data=getSales(), paid=data.filter(x=>x.status==="paid"), pending=data.filter(x=>x.status==="pending");
@@ -240,7 +276,7 @@
   }
   function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
   function markPaid(id){const d=getSales();const x=d.find(x=>String(x.id)===String(id));if(x){x.status="paid";saveSales(d);renderDashboard()}}
-  function removeSale(id){if(confirm("Hapus transaksi ini?")){saveSales(getSales().filter(x=>String(x.id)!==String(id)));renderDashboard()}}
+  function removeSale(id){if(confirm("Hapus transaksi ini?")){saveSales(getSales().filter(x=>String(x.id)!==String(id)));renderDashboard();renderSheet()}}
   function drawChart(paid){
     const c=document.getElementById("salesChart"),ctx=c.getContext("2d"),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);
     const vals=[];for(let i=29;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const key=d.toDateString();vals.push(paid.filter(x=>new Date(x.date).toDateString()===key).reduce((s,x)=>s+Number(x.amount),0))}
@@ -255,6 +291,80 @@
   document.getElementById("salesForm").addEventListener("submit",e=>{e.preventDefault();const d=getSales();d.unshift({id:Date.now(),date:new Date().toISOString(),name:document.getElementById("saleProduct").value,amount:Number(document.getElementById("saleAmount").value),status:document.getElementById("saleStatus").value});saveSales(d);e.target.reset();renderDashboard()});
   document.getElementById("adminModal").addEventListener("click",e=>{if(e.target.id==="adminModal")closeAdmin()});
   document.getElementById("year").textContent=new Date().getFullYear();
+  function showSheet(){
+    document.getElementById("dashboard").style.display="none";
+    document.getElementById("sheetView").style.display="block";
+    document.querySelector("#adminModal .panel").classList.add("wide");
+    renderSheet();
+  }
+  function hideSheet(){
+    document.getElementById("sheetView").style.display="none";
+    document.querySelector("#adminModal .panel").classList.remove("wide");
+    document.getElementById("dashboard").style.display="block";
+    renderDashboard();
+  }
+  function periodOk(date,p){
+    const d=new Date(date),now=new Date();
+    if(p==="today")return d.toDateString()===now.toDateString();
+    if(p==="7d"){const s=new Date(now);s.setDate(now.getDate()-6);s.setHours(0,0,0,0);return d>=s}
+    if(p==="month")return d>=new Date(now.getFullYear(),now.getMonth(),1);
+    return true;
+  }
+  function filteredRows(){
+    const p=document.getElementById("fPeriod").value, st=document.getElementById("fStatus").value;
+    return getSales().filter(x=>periodOk(x.date,p)&&(st==="all"||x.status===st)).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  }
+  function renderSheet(){
+    const rows=filteredRows();
+    document.getElementById("sheetBody").innerHTML=rows.length?rows.map((x,i)=>`<tr>
+      <td class="rownum">${i+2}</td>
+      <td>${formatDate(x.date)}</td>
+      <td>${new Date(x.date).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})}</td>
+      <td><input list="produkList" value="${escapeHtml(x.name)}" onchange="editSale('${x.id}','name',this.value)"></td>
+      <td><input class="num" type="number" min="0" value="${Number(x.amount)||0}" onchange="editSale('${x.id}','amount',this.value)"></td>
+      <td><select onchange="editSale('${x.id}','status',this.value)"><option value="paid"${x.status==="paid"?" selected":""}>Lunas</option><option value="pending"${x.status!=="paid"?" selected":""}>Menunggu</option></select></td>
+      <td class="act"><button class="danger" onclick="removeSale('${x.id}')">Hapus</button></td>
+    </tr>`).join(""):'<tr><td colspan="7" style="text-align:center;padding:22px;color:var(--muted)">Belum ada transaksi pada filter ini.</td></tr>';
+    const sum=a=>a.reduce((s,x)=>s+Number(x.amount||0),0);
+    const paid=rows.filter(x=>x.status==="paid"), pend=rows.filter(x=>x.status!=="paid");
+    document.getElementById("sheetFoot").innerHTML=`<tr><td class="rownum"></td><td colspan="3">Total lunas (${paid.length} transaksi)</td><td class="num">${rupiah(sum(paid))}</td><td colspan="2">Menunggu: ${rupiah(sum(pend))} (${pend.length})</td></tr>`;
+  }
+  function editSale(id,field,value){
+    const d=getSales(), x=d.find(y=>String(y.id)===String(id));
+    if(!x)return;
+    x[field]=field==="amount"?(Number(value)||0):value;
+    saveSales(d);renderDashboard();renderSheet();
+  }
+  function addSheetRow(){
+    document.getElementById("fPeriod").value="all";
+    document.getElementById("fStatus").value="all";
+    const d=getSales();
+    d.unshift({id:Date.now()+Math.random().toString(16).slice(2),date:new Date().toISOString(),name:"",amount:0,status:"paid"});
+    saveSales(d);renderSheet();
+    const inputs=document.querySelectorAll("#sheetBody tr:last-child input[list]");
+    if(inputs[0])inputs[0].focus();
+  }
+  function exportCSV(){
+    const rows=filteredRows();
+    const pad=n=>String(n).padStart(2,"0");
+    const isoDate=s=>{const d=new Date(s);return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
+    const hm=s=>{const d=new Date(s);return `${pad(d.getHours())}:${pad(d.getMinutes())}`};
+    const sum=a=>a.reduce((s,x)=>s+Number(x.amount||0),0);
+    const paid=rows.filter(x=>x.status==="paid"), pend=rows.filter(x=>x.status!=="paid");
+    const table=[
+      ["No","Tanggal","Jam","Pesanan","Nominal (Rp)","Status"],
+      ...rows.map((x,i)=>[i+1,isoDate(x.date),hm(x.date),x.name,Number(x.amount)||0,x.status==="paid"?"Lunas":"Menunggu"]),
+      [],
+      ["","","","Total lunas",sum(paid),`${paid.length} transaksi`],
+      ["","","","Total menunggu",sum(pend),`${pend.length} transaksi`]
+    ];
+    const csv="\uFEFF"+table.map(r=>r.map(c=>typeof c==="number"?c:`"${String(c).replace(/"/g,'""')}"`).join(";")).join("\r\n");
+    const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+    const a=document.createElement("a");
+    a.href=url;a.download=`rekap-penjualan-mino-cake-${isoDate(new Date())}.csv`;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
   function toggleMute(){
     const v=document.getElementById('heroVid');
     const btn=document.getElementById('muteBtn');
